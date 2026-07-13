@@ -152,21 +152,25 @@ Before pushing changes, run the following verification checks:
 
 ---
 
-## 🔮 Future Roadmap
+## 🔮 Roadmap
 
-* **Day 2 (Next Step):**
-  * Implement base database models (e.g., `logs`, `users`, `threats`).
-  * Implement Pydantic request/response validation schemas.
-  * Formulate the mock backend API router endpoints for log uploads and alert listings.
-  * Write the first set of unit and integration test suites using `pytest`.
-* **Day 3-5:**
-  * Threat Ingestion Pipeline (Parsers for syslog, JSON, Windows Events).
-  * Detection Engine execution using sigma rules and static thresholds.
-  * Integration with LLM providers for AI-driven security analyst advice and copilot integrations.
-  * Interactive incident timeline visualization on the frontend.
+* **Phase 1: Database & Router Foundation (Current)**
+  * Establish core ORM models mapping threats, logs, and users.
+  * Formulate validation boundaries and API routes.
+  * Integrate comprehensive unit testing framework.
+* **Phase 2: Log Collection & Parsing Ingestion Pipeline**
+  * Support raw log parser formats (syslog, JSON, Windows Events).
+  * Build log pipeline buffering and streaming queue interfaces.
+* **Phase 3: Threat Detection & Correlation Engine**
+  * Run Sigma rule processing and alert generation.
+  * Implement threat intelligence indicator matching pools.
+* **Phase 4: AI Copilot & Automated Playbooks**
+  * Integrate large language models for contextual threat analysis and resolution guidance.
+  * Auto-generate remediation playbooks.
 
 ---
 
 ## 📝 License
 
 This project is licensed under a proprietary enterprise license. Unauthorized copying or redistribution is strictly prohibited.
+

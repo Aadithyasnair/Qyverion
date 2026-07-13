@@ -34,6 +34,11 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+# Register consolidated API controllers
+from app.api.v1.api import api_router
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
 # Middleware: Log incoming requests, HTTP methods, and latency
 @app.middleware("http")
 async def log_requests(request: Request, call_next) -> Response:
