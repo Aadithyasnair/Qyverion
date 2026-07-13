@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qyverion // AI Security Operations Center Platform</title>
+    <meta name="description" content="Qyverion is an AI-powered Security Operations Center (SOC) platform for centralized log ingestion, threat detection, incident investigation, and AI-assisted security analysis.">
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-cyber-dark text-cyber-light font-sans overflow-hidden">
+    <!-- Background Canvas for Cybersecurity grid/node visualization -->
+    <canvas id="cyber-grid" class="absolute inset-0 pointer-events-none z-0 opacity-40"></canvas>
+    
+    <!-- Top-level Glow Effects -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="relative z-10 flex h-screen flex-col">
+        <!-- Header -->
+        <header class="flex h-16 items-center justify-between border-b border-cyber-border bg-cyber-card/60 px-6 backdrop-blur-md">
+            <div class="flex items-center gap-3">
+                <div class="relative flex h-9 w-9 items-center justify-center rounded-lg border border-cyber-accent bg-cyber-accent/10 shadow-[0_0_15px_rgba(0,242,254,0.15)]">
+                    <span class="font-mono text-xl font-extrabold text-cyber-accent">Q</span>
+                    <span class="absolute inset-0 rounded-lg border border-cyber-accent animate-ping opacity-20"></span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider text-cyber-light">QYVERION</h1>
+                    <span class="font-mono text-[10px] tracking-widest text-cyber-accent uppercase">AI Security Operations Center</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <!-- Status Badge -->
+                <div class="flex items-center gap-2 rounded-full border border-cyber-success/30 bg-cyber-success/10 px-3 py-1 text-xs text-cyber-success">
+                    <span class="h-2 w-2 rounded-full bg-cyber-success animate-pulse"></span>
+                    <span class="font-mono tracking-wider">FOUNDATION ACTIVE</span>
+                </div>
+                <!-- Dev Indicator -->
+                <div class="font-mono text-xs text-cyber-muted">
+                    V1.0.0-DAY1
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar (Navigation & Controls) -->
+            <aside class="w-64 border-r border-cyber-border bg-cyber-card/40 p-4 backdrop-blur-md flex flex-col justify-between">
+                <div class="space-y-6">
+                    <div class="px-2">
+                        <p class="font-mono text-[10px] tracking-widest text-cyber-muted uppercase">Core Console</p>
+                    </div>
+                    
+                    <nav class="space-y-1">
+                        <a href="#" class="sidebar-link active" id="nav-overview">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                            <span>Overview</span>
+                        </a>
+                        <a href="#" class="sidebar-link disabled">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                            <span>Log Ingestion</span>
+                            <span class="lock-badge">MOCK</span>
+                        </a>
+                        <a href="#" class="sidebar-link disabled">
+                            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                            <span>Threat Detection</span>
+                            <span class="lock-badge">MOCK</span>
+                        </a>
+                        <a href="#" class="sidebar-link disabled">
+                            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                            <span>Investigation</span>
+                            <span class="lock-badge">MOCK</span>
+                        </a>
+                        <a href="#" class="sidebar-link disabled">
+                            <i data-lucide="terminal" class="w-4 h-4"></i>
+                            <span>AI Analyst (Copilot)</span>
+                            <span class="lock-badge">MOCK</span>
+                        </a>
+                        <a href="#" class="sidebar-link disabled">
+                            <i data-lucide="globe" class="w-4 h-4"></i>
+                            <span>Threat Intelligence</span>
+                            <span class="lock-badge">MOCK</span>
+                        </a>
+                    </nav>
+                </div>
+
+                <div class="rounded-xl border border-cyber-border bg-cyber-card/80 p-4">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="cpu" class="w-5 h-5 text-cyber-accent animate-pulse"></i>
+                        <div>
+                            <p class="text-xs font-semibold">Backend Engine</p>
+                            <p class="font-mono text-[10px] text-cyber-success">FastAPI Connected</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-6 relative">
+                <!-- Welcome Banner -->
+                <div class="mb-8 rounded-2xl border border-cyber-accent/20 bg-gradient-to-r from-cyber-accent/5 to-transparent p-6 relative overflow-hidden shadow-[inset_0_0_20px_rgba(0,242,254,0.02)]">
+                    <div class="relative z-10 max-w-2xl">
+                        <h2 class="text-2xl font-bold tracking-tight text-cyber-light">Welcome to the Qyverion Platform Foundation</h2>
+                        <p class="mt-2 text-sm text-cyber-muted leading-relaxed">
+                            Day 1 foundation successfully deployed. Decoupled, modular architectures are active. Database configurations are mapped, Alembic migrations initialized, and the base FastAPI instance is operational.
+                        </p>
+                        <div class="mt-4 flex gap-3">
+                            <a href="/docs" target="_blank" class="cyber-btn flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                                <span>Read Documentation</span>
+                            </a>
+                            <a href="/docs/api" target="_blank" class="cyber-btn secondary flex items-center gap-2">
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                                <span>Explore Swagger API</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-cyber-accent/10 to-transparent pointer-events-none blur-xl"></div>
+                </div>
+
+                <!-- Foundation Verification Cards -->
+                <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+                    <!-- Card 1: API Foundation -->
+                    <div class="cyber-card">
+                        <div class="flex items-start justify-between">
+                            <div class="p-3 rounded-lg bg-cyber-accent/10 border border-cyber-accent/20">
+                                <i data-lucide="server" class="w-6 h-6 text-cyber-accent"></i>
+                            </div>
+                            <span class="status-indicator success">ACTIVE</span>
+                        </div>
+                        <h3 class="mt-4 text-base font-semibold">FastAPI Web Server</h3>
+                        <p class="mt-2 text-xs text-cyber-muted leading-relaxed">
+                            Routing framework configured. Handles API requests, CORS, custom JSON responses, and mounts static assets dynamically.
+                        </p>
+                        <div class="mt-4 font-mono text-[10px] text-cyber-accent">
+                            Uvicorn :8000
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Database Layer -->
+                    <div class="cyber-card">
+                        <div class="flex items-start justify-between">
+                            <div class="p-3 rounded-lg bg-cyber-success/10 border border-cyber-success/20">
+                                <i data-lucide="database-backup" class="w-6 h-6 text-cyber-success"></i>
+                            </div>
+                            <span class="status-indicator success">CONFIGURED</span>
+                        </div>
+                        <h3 class="mt-4 text-base font-semibold">PostgreSQL & SQLAlchemy</h3>
+                        <p class="mt-2 text-xs text-cyber-muted leading-relaxed">
+                            Modern SQLAlchemy 2.0 ORM base classes and session handlers configured. Ready for declarative schemas mapping.
+                        </p>
+                        <div class="mt-4 font-mono text-[10px] text-cyber-success">
+                            SQLAlchemy 2.x
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Alembic Migrations -->
+                    <div class="cyber-card">
+                        <div class="flex items-start justify-between">
+                            <div class="p-3 rounded-lg bg-cyber-purple/10 border border-cyber-purple/20">
+                                <i data-lucide="git-branch" class="w-6 h-6 text-cyber-purple"></i>
+                            </div>
+                            <span class="status-indicator success">READY</span>
+                        </div>
+                        <h3 class="mt-4 text-base font-semibold">Alembic Migration Engine</h3>
+                        <p class="mt-2 text-xs text-cyber-muted leading-relaxed">
+                            Alembic schema version control initialized. Automatically reads connection strings from our core application settings.
+                        </p>
+                        <div class="mt-4 font-mono text-[10px] text-cyber-purple">
+                            Auto-sync configured
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live System Log Viewer (Mock for Visual Polish) -->
+                <div class="rounded-xl border border-cyber-border bg-cyber-card/60 p-4 backdrop-blur-md">
+                    <div class="flex items-center justify-between mb-4 border-b border-cyber-border/60 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-cyber-accent"></span>
+                            <h4 class="text-sm font-semibold tracking-wider font-mono">CORE SYSTEM BOOTLOG</h4>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="clear-logs" class="text-[10px] font-mono text-cyber-muted hover:text-cyber-accent transition-colors">CLEAR</button>
+                        </div>
+                    </div>
+                    
+                    <div class="h-48 overflow-y-auto font-mono text-xs space-y-1.5 scrollbar-cyber" id="boot-log-container">
+                        <!-- Logs will be populated by app.js -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="/js/app.js"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
