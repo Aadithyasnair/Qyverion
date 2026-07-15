@@ -37,8 +37,8 @@ class AIService:
         }
         try:
             logger.info(f"Sending prompt to local Ollama service at {OLLAMA_URL} with model '{DEFAULT_MODEL}' (snappy limits)")
-            # Connect with a 15-second timeout to guarantee snappy UI response
-            response = httpx.post(OLLAMA_URL, json=payload, timeout=15.0)
+            # Connect with a 90-second timeout to allow local model generation to finish on CPU
+            response = httpx.post(OLLAMA_URL, json=payload, timeout=90.0)
             if response.status_code == 200:
                 data = response.json()
                 return data.get("message", {}).get("content", "")
@@ -47,7 +47,7 @@ class AIService:
                 # Try fallback model llama3
                 payload["model"] = "llama3"
                 logger.info("Attempting fallback with model 'llama3'...")
-                response_fb = httpx.post(OLLAMA_URL, json=payload, timeout=15.0)
+                response_fb = httpx.post(OLLAMA_URL, json=payload, timeout=90.0)
                 if response_fb.status_code == 200:
                     return response_fb.json().get("message", {}).get("content", "")
         except Exception as err:
