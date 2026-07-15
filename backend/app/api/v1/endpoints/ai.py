@@ -82,3 +82,76 @@ def generate_alert_playbook(alert_id: int, db: Session = Depends(get_db)) -> AIC
     ai_service = AIService()
     playbook_reply = ai_service.generate_playbook(alert, logs)
     return AIChatResponse(reply=playbook_reply)
+
+
+class RemediateResponse(BaseModel):
+    success: bool
+    message: str
+    blocked_ips: list[str]
+    execution_log: list[str]
+
+
+@router.post("/playbook/{alert_id}/remediate", response_model=RemediateResponse, summary="Execute active playbook remediation")
+def execute_remediation(alert_id: int, db: Session = Depends(get_db)) -> RemediateResponse:
+    """
+    Parses IPs from the alert description, logs blocked rules in the firewall BlockedIP table,
+    and returns a simulated active execution log.
+    """
+    from app.models.blocked_ip import BlockedIP
+    import re
+    
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Alert with id {alert_id} not found."
+        )
+
+    # Extract IP indicators
+    ip_matches = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", alert.description)
+    if not ip_matches:
+        ip_matches = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", alert.title)
+
+    blocked_list = []
+    logs = [
+        "Initializing active playbook containment executor...",
+        "Querying threat details...",
+        f"Alert: {alert.title} (Severity: {alert.severity})",
+    ]
+
+    for ip in ip_matches:
+        # Check if already active
+        existing = db.query(BlockedIP).filter(BlockedIP.ip_address == ip).first()
+        if existing:
+            logs.append(f"Attacker IP {ip} is already blocked in active database.")
+            blocked_list.append(ip)
+        else:
+            blocked_ip = BlockedIP(
+                ip_address=ip,
+                alert_id=alert.id,
+                rule_name=alert.title,
+                status="ACTIVE"
+            )
+            db.add(blocked_ip)
+            logs.append(f"Found attacker IP: {ip}")
+            logs.append(f"Simulating network rule: sudo iptables -A INPUT -s {ip} -j DROP")
+            logs.append(f"Successfully added block entry for {ip} to active firewall database.")
+            blocked_list.append(ip)
+
+    if blocked_list:
+        db.commit()
+        logs.append("Containment transaction committed. Network block policy synchronized.")
+        return RemediateResponse(
+            success=True,
+            message="Containment active block rules executed successfully.",
+            blocked_ips=blocked_list,
+            execution_log=logs
+        )
+    else:
+        logs.append("No public attacker IP indicators found in the alert details.")
+        return RemediateResponse(
+            success=False,
+            message="No containment actions executed: No attacker IP indicators identified.",
+            blocked_ips=[],
+            execution_log=logs
+        )

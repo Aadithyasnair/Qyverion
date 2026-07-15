@@ -38,6 +38,7 @@ except (OperationalError, Exception) as e:
         from app.models.alert import Alert
         from app.models.threat_indicator import ThreatIndicator
         from app.models.user import User
+        from app.models.blocked_ip import BlockedIP
         from app.db.base import Base
         Base.metadata.create_all(bind=engine)
         logger.info("Local SQLite database tables initialized successfully.")
