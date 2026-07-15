@@ -31,8 +31,9 @@ class AIService:
             "messages": messages,
             "stream": False,
             "options": {
-                "num_predict": 800,
-                "temperature": 0.2
+                "num_predict": 1200,
+                "temperature": 0.2,
+                "stop": ["</s>", "[INST]", "[/INST]"]
             }
         }
         try:
@@ -92,17 +93,20 @@ class AIService:
         """
         Generates a contextual response playbook for a triggered Alert.
         """
-        logs_context = "\n".join([f"- [{log.event_timestamp}] {log.raw_data}" for log in logs])
+        logs_context = "\n".join([f"- [{log.event_timestamp}] {log.raw_data[:120]}" for log in logs[:5]])
         
         prompt = (
-            f"Create a detailed incident response remediation playbook for this alert:\n"
-            f"- Alert Title: {alert.title}\n"
-            f"- Severity: {alert.severity}\n"
-            f"- Description: {alert.description}\n\n"
-            f"Associated Log History:\n{logs_context}\n\n"
-            f"Please structure the output with clean markdown headings: Executive Summary, "
-            f"Immediate Containment Actions (including blocking CLI commands), Investigation Steps, "
-            f"and Long-Term Hardening Recommendations."
+            f"Generate a concise incident response playbook for this security alert. "
+            f"Keep the ENTIRE response under 600 words. Use only these 4 sections with ### headers:\n\n"
+            f"### Executive Summary\n"
+            f"### Immediate Containment (include 1-2 bash commands)\n"
+            f"### Investigation Steps (3 bullet points max)\n"
+            f"### Hardening Recommendations (3 bullet points max)\n\n"
+            f"Alert Title: {alert.title}\n"
+            f"Severity: {alert.severity}\n"
+            f"Description: {alert.description}\n\n"
+            f"Recent Logs:\n{logs_context}\n\n"
+            f"Write the complete playbook now. Do not add extra sections or lengthy explanations."
         )
 
         messages = [
