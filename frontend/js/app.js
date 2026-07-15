@@ -184,33 +184,44 @@ function initBootLogs() {
     }
 }
 
-// 3. Tab Navigation & Live API Interactivity
+// // 3. Tab Navigation & Live API Interactivity
 function initInteractivity() {
     const navOverview = document.getElementById('nav-overview');
     const navIngestion = document.getElementById('nav-ingestion');
+    const navDetection = document.getElementById('nav-detection');
+    
     const tabOverview = document.getElementById('tab-overview');
     const tabIngestion = document.getElementById('tab-ingestion');
+    const tabDetection = document.getElementById('tab-detection');
 
-    if (!navOverview || !navIngestion) return;
+    if (!navOverview || !navIngestion || !navDetection) return;
 
-    // Tab switching controls
+    function resetTabs() {
+        [navOverview, navIngestion, navDetection].forEach(nav => nav.classList.remove('active'));
+        [tabOverview, tabIngestion, tabDetection].forEach(tab => tab.classList.add('hidden'));
+    }
+
     navOverview.addEventListener('click', (e) => {
         e.preventDefault();
+        resetTabs();
         navOverview.classList.add('active');
-        navIngestion.classList.remove('active');
         tabOverview.classList.remove('hidden');
-        tabIngestion.classList.add('hidden');
     });
 
     navIngestion.addEventListener('click', (e) => {
         e.preventDefault();
+        resetTabs();
         navIngestion.classList.add('active');
-        navOverview.classList.remove('active');
         tabIngestion.classList.remove('hidden');
-        tabOverview.classList.add('hidden');
-        
-        // Load database records dynamically on tab transition
         fetchDBLogs();
+    });
+
+    navDetection.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetTabs();
+        navDetection.classList.add('active');
+        tabDetection.classList.remove('hidden');
+        fetchDBAlerts();
     });
 
     // Ingestion Form Submit handler
@@ -274,11 +285,18 @@ function initInteractivity() {
         });
     }
 
-    // Refresh button listener
+    // Refresh button listeners
     const refreshBtn = document.getElementById('refresh-logs-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
             fetchDBLogs();
+        });
+    }
+
+    const refreshAlertsBtn = document.getElementById('refresh-alerts-btn');
+    if (refreshAlertsBtn) {
+        refreshAlertsBtn.addEventListener('click', () => {
+            fetchDBAlerts();
         });
     }
 }
@@ -346,3 +364,95 @@ async function fetchDBLogs() {
         }
     }
 }
+
+async function fetchDBAlerts() {
+    const tbody = document.getElementById('db-alerts-tbody');
+    const refreshIcon = document.getElementById('refresh-alerts-icon');
+    if (!tbody) return;
+
+    if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+    try {
+        const response = await fetch('/api/v1/alerts/');
+        const alerts = await response.json();
+        
+        if (response.ok) {
+            if (alerts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center font-mono text-xs text-cyber-muted py-8">
+                            No active security incidents found. System metrics nominal.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = alerts.map(alert => {
+                    const isNew = alert.status === 'NEW';
+                    const sevClass = alert.severity === 'CRITICAL' ? 'badge-crit' : (alert.severity === 'WARNING' || alert.severity === 'HIGH' ? 'badge-warn' : 'badge-info');
+                    const statusClass = alert.status === 'NEW' ? 'badge-crit' : (alert.status === 'RESOLVED' ? 'badge-info' : 'badge-warn');
+                    const formattedDate = new Date(alert.created_at).toLocaleString();
+                    
+                    const actionButton = isNew 
+                        ? `<button onclick="resolveAlert(${alert.id})" class="cyber-btn secondary py-0.5 px-2 text-[10px]">RESOLVE</button>`
+                        : `<span class="text-cyber-muted">-</span>`;
+                        
+                    return `
+                        <tr class="border-b border-cyber-border/40 font-mono text-xs text-left">
+                            <td class="text-cyber-muted whitespace-nowrap">${formattedDate}</td>
+                            <td class="text-cyber-light font-bold">${alert.title}</td>
+                            <td class="text-cyber-muted max-w-sm truncate" title="${alert.description}">${alert.description}</td>
+                            <td><span class="badge ${sevClass}">${alert.severity}</span></td>
+                            <td><span class="badge ${statusClass}">${alert.status}</span></td>
+                            <td>${actionButton}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center font-mono text-xs text-cyber-danger py-8">
+                        [HTTP Error] Failed to retrieve incident queue.
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center font-mono text-xs text-cyber-danger py-8">
+                    [Network Error] Connection refused: ${err.message}
+                </td>
+            </tr>
+        `;
+    } finally {
+        if (refreshIcon) {
+            setTimeout(() => {
+                refreshIcon.classList.remove('animate-spin');
+            }, 500);
+        }
+    }
+}
+
+// Global resolve alert utility function
+window.resolveAlert = async function(alertId) {
+    try {
+        const response = await fetch(`/api/v1/alerts/${alertId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: 'RESOLVED'
+            })
+        });
+        
+        if (response.ok) {
+            fetchDBAlerts();
+        } else {
+            alert('Failed to update alert state on remote server.');
+        }
+    } catch (err) {
+        alert(`Error communicating with backend: ${err.message}`);
+    }
+};

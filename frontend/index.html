@@ -67,10 +67,9 @@
                             <i data-lucide="database" class="w-4 h-4"></i>
                             <span>Log Ingestion</span>
                         </a>
-                        <a href="#" class="sidebar-link disabled">
+                        <a href="#" class="sidebar-link" id="nav-detection">
                             <i data-lucide="shield-alert" class="w-4 h-4"></i>
                             <span>Threat Detection</span>
-                            <span class="lock-badge">MOCK</span>
                         </a>
                         <a href="#" class="sidebar-link disabled">
                             <i data-lucide="zoom-in" class="w-4 h-4"></i>
@@ -264,6 +263,70 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threat Detection Tab Content (Live Data) -->
+                <div id="tab-detection" class="tab-content hidden">
+                    <!-- Rules Listing -->
+                    <div class="grid gap-6 md:grid-cols-2 mb-8">
+                        <div class="cyber-card">
+                            <div class="flex items-center gap-3 border-b border-cyber-border/60 pb-3 mb-2">
+                                <i data-lucide="shield-alert" class="w-5 h-5 text-cyber-warning"></i>
+                                <h3 class="text-sm font-bold text-cyber-light">Rule: Logon Brute Force</h3>
+                            </div>
+                            <p class="text-xs text-cyber-muted leading-relaxed">
+                                Detects 5 or more failed authentication events (Windows ID 4625, Syslog failed password) from a single IP source inside a 60-second window.
+                            </p>
+                            <span class="status-indicator warning mt-3">ENABLED</span>
+                        </div>
+
+                        <div class="cyber-card">
+                            <div class="flex items-center gap-3 border-b border-cyber-border/60 pb-3 mb-2">
+                                <i data-lucide="activity" class="w-5 h-5 text-cyber-accent"></i>
+                                <h3 class="text-sm font-bold text-cyber-light">Rule: Anomalous Service Probe</h3>
+                            </div>
+                            <p class="text-xs text-cyber-muted leading-relaxed">
+                                Detects when a single source IP initiates security log records across 3 or more distinct application namespaces/services within a 2-minute window.
+                            </p>
+                            <span class="status-indicator warning mt-3">ENABLED</span>
+                        </div>
+                    </div>
+
+                    <!-- Incidents Queue -->
+                    <div class="cyber-card flex flex-col gap-4">
+                        <div class="flex items-center justify-between border-b border-cyber-border/60 pb-3 mb-2">
+                            <div>
+                                <h3 class="text-md font-bold text-cyber-light">INCIDENT RESPONSE QUEUE</h3>
+                                <p class="text-xs text-cyber-muted mt-1">Real-time alerts triggered by correlation engine evaluations.</p>
+                            </div>
+                            <button id="refresh-alerts-btn" class="cyber-btn secondary py-1 px-3 flex items-center gap-2">
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="refresh-alerts-icon"></i>
+                                <span class="text-xs">REFRESH ALERTS</span>
+                            </button>
+                        </div>
+
+                        <div class="cyber-table-container scrollbar-cyber overflow-y-auto" style="max-height: 480px;">
+                            <table class="cyber-table">
+                                <thead>
+                                    <tr>
+                                        <th>Generated At</th>
+                                        <th>Incident Title</th>
+                                        <th>Description</th>
+                                        <th>Severity</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="db-alerts-tbody">
+                                    <tr>
+                                        <td colspan="6" class="text-center font-mono text-xs text-cyber-muted py-8">
+                                            No active security incidents found.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

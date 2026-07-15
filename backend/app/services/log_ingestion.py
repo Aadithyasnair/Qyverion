@@ -98,12 +98,23 @@ class LogIngestionService:
         )
 
         self.db.add(db_log)
+        self.db.flush()
         
         # Check source and destination IPs against active threat indicators
         if parsed.source_ip:
             self._check_threat_intel(parsed.source_ip)
         if parsed.destination_ip:
             self._check_threat_intel(parsed.destination_ip)
+
+        # 3. Evaluate correlation rules against the active log history
+        try:
+            from app.services.correlation_engine import CorrelationEngine
+            corr_engine = CorrelationEngine(self.db)
+            triggered_alerts = corr_engine.evaluate(db_log)
+            for alert in triggered_alerts:
+                self.db.add(alert)
+        except Exception as e:
+            logger.error(f"Correlation Engine failed to process log entry: {str(e)}")
 
         # Commit transaction
         self.db.commit()
