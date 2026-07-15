@@ -31,7 +31,7 @@ class AIService:
             "messages": messages,
             "stream": False,
             "options": {
-                "num_predict": 300,
+                "num_predict": 800,
                 "temperature": 0.2
             }
         }
