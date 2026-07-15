@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -72,8 +72,7 @@ class BlockedIPResponse(BaseModel):
     blocked_at: datetime
     status: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FeedSyncResponse(BaseModel):

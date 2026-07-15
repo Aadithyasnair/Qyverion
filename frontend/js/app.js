@@ -444,7 +444,7 @@ function initInteractivity() {
             const descInput = document.getElementById('ind-desc');
             const resultBox = document.getElementById('indicator-result');
 
-            resultBox.classList.add('hidden');
+            if (resultBox) resultBox.classList.add('hidden');
 
             try {
                 const response = await fetch('/api/v1/indicators/', {
@@ -461,18 +461,27 @@ function initInteractivity() {
 
                 const data = await response.json();
                 if (response.ok) {
-                    resultBox.className = "text-[10px] font-mono text-cyber-success block mt-2 animate-fade-in";
-                    resultBox.innerText = `Indicator ${data.indicator_value} registered successfully.`;
+                    if (resultBox) {
+                        resultBox.classList.remove('hidden');
+                        resultBox.className = "text-[10px] font-mono text-cyber-success block mt-2 animate-fade-in";
+                        resultBox.innerText = `Indicator ${data.indicator_value} registered successfully.`;
+                    }
                     valInput.value = '';
                     descInput.value = '';
                     fetchIndicatorsCatalog();
                 } else {
-                    resultBox.className = "text-[10px] font-mono text-cyber-danger block mt-2 animate-fade-in";
-                    resultBox.innerText = `Registration failed: ${data.detail}`;
+                    if (resultBox) {
+                        resultBox.classList.remove('hidden');
+                        resultBox.className = "text-[10px] font-mono text-cyber-danger block mt-2 animate-fade-in";
+                        resultBox.innerText = `Registration failed: ${data.detail}`;
+                    }
                 }
             } catch (err) {
-                resultBox.className = "text-[10px] font-mono text-cyber-danger block mt-2";
-                resultBox.innerText = `Network fault: ${err.message}`;
+                if (resultBox) {
+                    resultBox.classList.remove('hidden');
+                    resultBox.className = "text-[10px] font-mono text-cyber-danger block mt-2";
+                    resultBox.innerText = `Network fault: ${err.message}`;
+                }
             }
         });
     }
@@ -896,6 +905,38 @@ async function fetchBlockedRegistry() {
         }
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="4" class="text-center font-mono text-[10px] text-cyber-danger py-8">Failed to load blocks registry.</td></tr>`;
+    }
+}
+
+// loadCopilotAlerts: Populates the AI Copilot panel's incident alert list
+async function loadCopilotAlerts() {
+    const listContainer = document.getElementById('copilot-alerts-list');
+    if (!listContainer) return;
+
+    try {
+        const response = await fetch('/api/v1/alerts/');
+        const alerts = await response.json();
+
+        if (response.ok) {
+            const activeAlerts = alerts.filter(a => a.status === 'NEW');
+            if (activeAlerts.length === 0) {
+                listContainer.innerHTML = '<span class="text-[10px] text-cyber-muted font-mono py-2 text-center block">No active alerts available.</span>';
+            } else {
+                listContainer.innerHTML = activeAlerts.map(alert => `
+                    <div class="flex flex-col gap-1.5 p-2 bg-cyber-dark/40 border border-cyber-border/40 rounded">
+                        <span class="text-[9px] text-cyber-muted">${new Date(alert.created_at).toLocaleTimeString()}</span>
+                        <span class="text-[10px] text-cyber-light font-bold truncate" title="${alert.title}">${alert.title}</span>
+                        <button onclick="generatePlaybookFor(${alert.id})" class="cyber-btn secondary py-1 text-[9px] w-full text-center mt-1">
+                            GENERATE PLAYBOOK
+                        </button>
+                    </div>
+                `).join('');
+            }
+        } else {
+            listContainer.innerHTML = '<span class="text-[10px] text-cyber-danger font-mono py-2 text-center block">Failed to fetch alerts list.</span>';
+        }
+    } catch (err) {
+        listContainer.innerHTML = `<span class="text-[10px] text-cyber-danger font-mono py-2 text-center block">Connection error: ${err.message}</span>`;
     }
 }
 

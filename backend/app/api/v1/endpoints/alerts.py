@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.alert import Alert
@@ -53,12 +53,14 @@ def create_alert(
 
 @router.patch("/{alert_id}/status", response_model=AlertResponse, summary="Update alert lifecycle status")
 def update_alert_status(
-    alert_id: int, 
-    payload: AlertUpdateStatus, 
-    db: Session = Depends(get_db)
+    alert_id: int,
+    db: Session = Depends(get_db),
+    payload: Optional[AlertUpdateStatus] = None,
+    status_param: Optional[str] = Query(None, alias="status")
 ) -> AlertResponse:
     """
     Modifies status (e.g. from NEW to RESOLVED) of an active security alert.
+    Accepts status either as a JSON body (AlertUpdateStatus) or as a query parameter.
     """
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
@@ -67,9 +69,21 @@ def update_alert_status(
             detail=f"Alert with id {alert_id} not found."
         )
 
-    alert.status = payload.status
+    # Resolve status from body or query param
+    new_status = None
+    if payload is not None:
+        new_status = payload.status
+    elif status_param is not None:
+        new_status = status_param
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="status must be provided in request body or as query parameter."
+        )
+
+    alert.status = new_status
     alert.updated_at = datetime.now(timezone.utc)
-    if payload.status in ["RESOLVED", "FALSE_POSITIVE"]:
+    if new_status in ["RESOLVED", "FALSE_POSITIVE"]:
         alert.closed_at = datetime.now(timezone.utc)
     else:
         alert.closed_at = None
