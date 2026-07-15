@@ -63,6 +63,11 @@ async def log_requests(request: Request, call_next) -> Response:
         f"Request: {method} {path} - Status: {response.status_code} - Completed in: {formatted_process_time}"
     )
     
+    # Prevent caching in development to ensure latest files load immediately
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     return response
 
 # API endpoint: Health check (Task requirement for verifying database connection)
