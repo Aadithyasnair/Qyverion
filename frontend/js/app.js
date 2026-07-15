@@ -1004,6 +1004,156 @@ window.executePlaybookRemediation = async function(alertId, messageId) {
     }
 };
 
+async function fetchDBLogs() {
+    const tbody = document.getElementById('db-logs-tbody');
+    const refreshIcon = document.getElementById('refresh-icon');
+    if (!tbody) return;
+
+    if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+    try {
+        const response = await fetch('/api/v1/logs/');
+        const logs = await response.json();
+        
+        if (response.ok) {
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center font-mono text-xs text-cyber-muted py-8">
+                            No logs found in the database. Ingest a raw event to get started.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = logs.map(log => {
+                    const sevClass = log.severity === 'CRITICAL' ? 'badge-crit' : (log.severity === 'WARNING' ? 'badge-warn' : 'badge-info');
+                    const formattedDate = new Date(log.ingested_at).toLocaleString();
+                    const escapedRaw = log.raw_data.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    const truncatedRaw = escapedRaw.length > 55 ? escapedRaw.substring(0, 55) + '...' : escapedRaw;
+                    
+                    return `
+                        <tr class="border-b border-cyber-border/40 font-mono text-xs">
+                            <td class="text-cyber-muted whitespace-nowrap">${formattedDate}</td>
+                            <td class="text-cyber-light font-semibold">${log.log_source}</td>
+                            <td><span class="badge ${sevClass}">${log.severity}</span></td>
+                            <td class="text-cyber-accent">${log.source_ip || 'N/A'}</td>
+                            <td class="text-cyber-muted max-w-xs truncate" title="${escapedRaw}">${truncatedRaw}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center font-mono text-xs text-cyber-danger py-8">
+                        [HTTP Error] Failed to retrieve parsed records.
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center font-mono text-xs text-cyber-danger py-8">
+                    [Network Error] Connection refused: ${err.message}
+                </td>
+            </tr>
+        `;
+    } finally {
+        if (refreshIcon) {
+            setTimeout(() => {
+                refreshIcon.classList.remove('animate-spin');
+            }, 500);
+        }
+    }
+}
+
+async function fetchDBAlerts() {
+    const tbody = document.getElementById('db-alerts-tbody');
+    const refreshIcon = document.getElementById('refresh-alerts-icon');
+    if (!tbody) return;
+
+    if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+    try {
+        const response = await fetch('/api/v1/alerts/');
+        const alerts = await response.json();
+        
+        if (response.ok) {
+            if (alerts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center font-mono text-xs text-cyber-muted py-8">
+                            No active security incidents found. System metrics nominal.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = alerts.map(alert => {
+                    const isNew = alert.status === 'NEW';
+                    const sevClass = alert.severity === 'CRITICAL' ? 'badge-crit' : (alert.severity === 'WARNING' || alert.severity === 'HIGH' ? 'badge-warn' : 'badge-info');
+                    const statusClass = alert.status === 'NEW' ? 'badge-crit' : (alert.status === 'RESOLVED' ? 'badge-info' : 'badge-warn');
+                    const formattedDate = new Date(alert.created_at).toLocaleString();
+                    
+                    const actionButton = isNew 
+                        ? `<button onclick="resolveAlert(${alert.id})" class="cyber-btn secondary py-0.5 px-2 text-[10px]">RESOLVE</button>`
+                        : `<span class="text-cyber-muted">-</span>`;
+                        
+                    return `
+                        <tr class="border-b border-cyber-border/40 font-mono text-xs text-left">
+                            <td class="text-cyber-muted whitespace-nowrap">${formattedDate}</td>
+                            <td class="text-cyber-light font-bold">${alert.title}</td>
+                            <td class="text-cyber-muted max-w-sm truncate" title="${alert.description}">${alert.description}</td>
+                            <td><span class="badge ${sevClass}">${alert.severity}</span></td>
+                            <td><span class="badge ${statusClass}">${alert.status}</span></td>
+                            <td>${actionButton}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center font-mono text-xs text-cyber-danger py-8">
+                        [HTTP Error] Failed to retrieve incident queue.
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center font-mono text-xs text-cyber-danger py-8">
+                    [Network Error] Connection refused: ${err.message}
+                </td>
+            </tr>
+        `;
+    } finally {
+        if (refreshIcon) {
+            setTimeout(() => {
+                refreshIcon.classList.remove('animate-spin');
+            }, 500);
+        }
+    }
+}
+
+window.resolveAlert = async function(alertId) {
+    try {
+        const response = await fetch(`/api/v1/alerts/${alertId}/status?status=RESOLVED`, {
+            method: 'PATCH'
+        });
+        
+        if (response.ok) {
+            fetchDBAlerts();
+            loadCopilotAlerts();
+        } else {
+            alert('Failed to update alert state on remote server.');
+        }
+    } catch (err) {
+        alert(`Error communicating with backend: ${err.message}`);
+    }
+};
+
 // Global exports & initialization boots
 window.sendCopilotSuggested = function(text) {
     const input = document.getElementById('chat-user-message');
