@@ -162,3 +162,7 @@ dist/
 # Project temporary outputs
 scripts/*.log
 datasets/raw_data/
+
+# Local database fallbacks
+qyverion.db
+qyverion.db-journal
