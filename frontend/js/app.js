@@ -4,6 +4,13 @@ function bootstrapApp() {
     initCanvas();
     initBootLogs();
     initInteractivity();
+    initAttackMap();
+    
+    // Auto load assets on initial view
+    setTimeout(() => {
+        fetchDBLogs();
+        fetchDBAlerts();
+    }, 100);
 }
 
 if (document.readyState === 'loading') {
@@ -262,7 +269,7 @@ function initInteractivity() {
         ingestForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const textarea = document.getElementById('ingest-raw-data');
-            const resultMsg = document.getElementById('ingest-result-msg');
+            const resultMsg = document.getElementById('submit-result');
             const rawData = textarea.value.trim();
 
             if (!rawData) {
@@ -279,6 +286,7 @@ function initInteractivity() {
 
                 const data = await response.json();
                 if (response.ok) {
+                    resultMsg.classList.remove("hidden");
                     resultMsg.className = "text-xs font-mono text-cyber-success block mt-2 animate-fade-in";
                     resultMsg.innerText = `[SUCCESS] Ingested Log ID #${data.id}. Detected Source: ${data.source_ip || 'None'} / Rule: ${data.log_source || 'Unknown'}`;
                     textarea.value = '';
@@ -289,11 +297,13 @@ function initInteractivity() {
                         triggerAttackArc(data.source_ip);
                     }
                 } else {
+                    resultMsg.classList.remove("hidden");
                     resultMsg.className = "text-xs font-mono text-cyber-danger block mt-2 animate-fade-in";
                     resultMsg.innerText = `[ERROR] Ingestion Rejected: ${data.detail}`;
                 }
             } catch (err) {
-                resultMsg.className = "text-xs font-mono text-cyber-danger block mt-2 animate-fade-in";
+                resultMsg.classList.remove("hidden");
+                    resultMsg.className = "text-xs font-mono text-cyber-danger block mt-2 animate-fade-in";
                 resultMsg.innerText = `[ERROR] Network fault: ${err.message}`;
             }
         });
@@ -1058,15 +1068,3 @@ function formatMarkdown(text) {
     }
     return parts.join('');
 }
-
-// Dom Bootload Initializer
-document.addEventListener('DOMContentLoaded', () => {
-    initInteractivity();
-    initAttackMap();
-    
-    // Auto load assets on initial view
-    setTimeout(() => {
-        fetchDBLogs();
-        fetchDBAlerts();
-    }, 100);
-});
