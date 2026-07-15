@@ -1,5 +1,10 @@
 from datetime import datetime, timezone
+from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
+
+from app.models.log_entry import LogEntry
+from app.models.alert import Alert
+from app.models.threat_indicator import ThreatIndicator
 
 
 def test_health_check(client: TestClient) -> None:
@@ -14,10 +19,15 @@ def test_health_check(client: TestClient) -> None:
     assert data["project"] == "Qyverion"
 
 
-def test_logs_endpoints(client: TestClient) -> None:
+def test_logs_endpoints(db: Session, client: TestClient) -> None:
     """
     Tests logs retrieval and ingest validation.
     """
+    # Seed baseline logs in test database session
+    db.add(LogEntry(raw_data="log1", log_source="firewall", severity="INFO", event_timestamp=datetime.now(timezone.utc)))
+    db.add(LogEntry(raw_data="log2", log_source="firewall", severity="INFO", event_timestamp=datetime.now(timezone.utc)))
+    db.commit()
+
     # 1. Read existing logs
     response = client.get("/api/v1/logs/")
     assert response.status_code == 200
@@ -62,10 +72,15 @@ def test_logs_ingest_validation(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_alerts_endpoints(client: TestClient) -> None:
+def test_alerts_endpoints(db: Session, client: TestClient) -> None:
     """
     Tests alert retrieval, creation, and status patch transitions.
     """
+    # Seed baseline alerts in test database session
+    db.add(Alert(title="alert1", description="desc1", severity="HIGH", status="NEW"))
+    db.add(Alert(title="alert2", description="desc2", severity="HIGH", status="NEW"))
+    db.commit()
+
     # 1. Read alerts
     response = client.get("/api/v1/alerts/")
     assert response.status_code == 200
@@ -94,10 +109,15 @@ def test_alerts_endpoints(client: TestClient) -> None:
     assert data["closed_at"] is not None
 
 
-def test_indicators_endpoints(client: TestClient) -> None:
+def test_indicators_endpoints(db: Session, client: TestClient) -> None:
     """
     Tests threat intelligence IoC retrieval and posting.
     """
+    # Seed baseline indicators in test database session
+    db.add(ThreatIndicator(indicator_value="198.51.100.1", indicator_type="ip", threat_actor="Actor1", risk_score=80))
+    db.add(ThreatIndicator(indicator_value="198.51.100.2", indicator_type="ip", threat_actor="Actor2", risk_score=80))
+    db.commit()
+
     # 1. Read threat indicators
     response = client.get("/api/v1/indicators/")
     assert response.status_code == 200
