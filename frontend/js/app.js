@@ -1,8 +1,9 @@
-// Qyverion Day 1 - Frontend Interaction & Canvas Visualization
+// Qyverion - Frontend Interactions & Dynamic Log Ingestion
 
 document.addEventListener('DOMContentLoaded', () => {
     initCanvas();
     initBootLogs();
+    initInteractivity();
 });
 
 // 1. Canvas Node-Grid Visualization
@@ -109,9 +110,9 @@ function initCanvas() {
     });
 }
 
-// 2. Mock System Bootlog Streaming
+// 2. Mock System Bootlog Streaming (Visual Polish)
 const MOCK_LOGS = [
-    { type: 'info', tag: 'SYS', msg: 'Initializing Qyverion Platform Foundation (Day 1)...' },
+    { type: 'info', tag: 'SYS', msg: 'Initializing Qyverion Platform Foundation...' },
     { type: 'info', tag: 'ENV', msg: 'Loading environment variables from root .env configuration...' },
     { type: 'success', tag: 'ENV', msg: 'Config module compiled successfully. Strict type validation loaded.' },
     { type: 'info', tag: 'DB', msg: 'Establishing connection to PostgreSQL at localhost:5432/qyverion...' },
@@ -162,11 +163,10 @@ function initBootLogs() {
         
         logIndex++;
         
-        // Random slight delays between 300ms and 800ms for natural feel
+        // Random slight delays
         setTimeout(addLogLine, Math.random() * 500 + 200);
     }
     
-    // Start streaming logs
     addLogLine();
     
     if (clearBtn) {
@@ -175,5 +175,168 @@ function initBootLogs() {
             logIndex = 0;
             addLogLine();
         });
+    }
+}
+
+// 3. Tab Navigation & Live API Interactivity
+function initInteractivity() {
+    const navOverview = document.getElementById('nav-overview');
+    const navIngestion = document.getElementById('nav-ingestion');
+    const tabOverview = document.getElementById('tab-overview');
+    const tabIngestion = document.getElementById('tab-ingestion');
+
+    if (!navOverview || !navIngestion) return;
+
+    // Tab switching controls
+    navOverview.addEventListener('click', (e) => {
+        e.preventDefault();
+        navOverview.classList.add('active');
+        navIngestion.classList.remove('active');
+        tabOverview.classList.remove('hidden');
+        tabIngestion.classList.add('hidden');
+    });
+
+    navIngestion.addEventListener('click', (e) => {
+        e.preventDefault();
+        navIngestion.classList.add('active');
+        navOverview.classList.remove('active');
+        tabIngestion.classList.remove('hidden');
+        tabOverview.classList.add('hidden');
+        
+        // Load database records dynamically on tab transition
+        fetchDBLogs();
+    });
+
+    // Ingestion Form Submit handler
+    const ingestForm = document.getElementById('ingest-form');
+    const submitResult = document.getElementById('submit-result');
+    
+    if (ingestForm) {
+        ingestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const rawData = document.getElementById('ingest-raw-data').value.trim();
+            const logSource = document.getElementById('ingest-log-source').value;
+            
+            if (!rawData) {
+                alert('Please enter a raw log message before submitting.');
+                return;
+            }
+            
+            submitResult.classList.remove('hidden');
+            submitResult.innerHTML = '<span class="text-cyber-accent">Sending payload to database ingestion pipeline...</span>';
+            
+            try {
+                const response = await fetch('/api/v1/logs/ingest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        raw_data: rawData,
+                        log_source: logSource,
+                        severity: 'INFO', // Re-evaluated dynamically by backend services
+                        event_timestamp: new Date().toISOString()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const sevClass = data.severity === 'CRITICAL' ? 'badge-crit' : (data.severity === 'WARNING' ? 'badge-warn' : 'badge-info');
+                    submitResult.innerHTML = `
+                        <span class="text-cyber-success">[PIPELINE SUCCESS] Record Ingested:</span><br>
+                        ID: <span class="text-cyber-light">${data.id}</span><br>
+                        Source: <span class="text-cyber-light">${data.log_source}</span><br>
+                        Severity: <span class="badge ${sevClass}">${data.severity}</span><br>
+                        Extracted Source IP: <span class="text-cyber-light">${data.source_ip || 'None detected'}</span><br>
+                        Extracted Dest IP:   <span class="text-cyber-light">${data.destination_ip || 'None detected'}</span><br>
+                        Ingested At: <span class="text-cyber-muted">${new Date(data.ingested_at).toLocaleTimeString()}</span>
+                    `;
+                    
+                    // Clear the inputs
+                    document.getElementById('ingest-raw-data').value = '';
+                    
+                    // Refresh list registry table
+                    fetchDBLogs();
+                } else {
+                    submitResult.innerHTML = `<span class="text-cyber-danger">[ERROR] Ingestion Rejected: ${data.detail || 'Malformed payload syntax'}</span>`;
+                }
+            } catch (err) {
+                submitResult.innerHTML = `<span class="text-cyber-danger">[ERROR] Server connection error: ${err.message}</span>`;
+            }
+        });
+    }
+
+    // Refresh button listener
+    const refreshBtn = document.getElementById('refresh-logs-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            fetchDBLogs();
+        });
+    }
+}
+
+async function fetchDBLogs() {
+    const tbody = document.getElementById('db-logs-tbody');
+    const refreshIcon = document.getElementById('refresh-icon');
+    if (!tbody) return;
+
+    if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+    try {
+        const response = await fetch('/api/v1/logs/');
+        const logs = await response.json();
+        
+        if (response.ok) {
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center font-mono text-xs text-cyber-muted py-8">
+                            No logs found in the database. Ingest a raw event to get started.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = logs.map(log => {
+                    const sevClass = log.severity === 'CRITICAL' ? 'badge-crit' : (log.severity === 'WARNING' ? 'badge-warn' : 'badge-info');
+                    const formattedDate = new Date(log.ingested_at).toLocaleString();
+                    const escapedRaw = log.raw_data.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    const truncatedRaw = escapedRaw.length > 55 ? escapedRaw.substring(0, 55) + '...' : escapedRaw;
+                    
+                    return `
+                        <tr class="border-b border-cyber-border/40 font-mono text-xs">
+                            <td class="text-cyber-muted whitespace-nowrap">${formattedDate}</td>
+                            <td class="text-cyber-light font-semibold">${log.log_source}</td>
+                            <td><span class="badge ${sevClass}">${log.severity}</span></td>
+                            <td class="text-cyber-accent">${log.source_ip || 'N/A'}</td>
+                            <td class="text-cyber-muted max-w-xs truncate" title="${escapedRaw}">${truncatedRaw}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center font-mono text-xs text-cyber-danger py-8">
+                        [HTTP Error] Failed to retrieve parsed records.
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center font-mono text-xs text-cyber-danger py-8">
+                    [Network Error] Connection refused: ${err.message}
+                </td>
+            </tr>
+        `;
+    } finally {
+        if (refreshIcon) {
+            setTimeout(() => {
+                refreshIcon.classList.remove('animate-spin');
+            }, 500);
+        }
     }
 }
