@@ -1039,8 +1039,7 @@ function formatMarkdown(text) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-    html = html.replace(/```(?:[a-zA-Z0-9]+)?
-([\s\S]*?)```/g, (match, p1) => {
+    html = html.replace(/```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)```/g, (match, p1) => {
         return `<pre class="bg-cyber-dark border border-cyber-border/40 p-3 rounded font-mono text-[11px] text-cyber-accent my-2 overflow-x-auto select-text">${p1.trim()}</pre>`;
     });
 
@@ -1054,8 +1053,7 @@ function formatMarkdown(text) {
     const parts = html.split(/(<pre[\s\S]*?<\/pre>)/g);
     for (let i = 0; i < parts.length; i++) {
         if (!parts[i].startsWith('<pre')) {
-            parts[i] = parts[i].replace(/
-/g, '<br>');
+            parts[i] = parts[i].replace(/\n/g, '<br>');
         }
     }
     return parts.join('');
