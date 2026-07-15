@@ -269,6 +269,7 @@ function initInteractivity() {
         ingestForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const textarea = document.getElementById('ingest-raw-data');
+            const logSource = document.getElementById('ingest-log-source').value;
             const resultMsg = document.getElementById('submit-result');
             const rawData = textarea.value.trim();
 
@@ -278,10 +279,15 @@ function initInteractivity() {
             }
 
             try {
-                const response = await fetch('/api/v1/logs/', {
+                const response = await fetch('/api/v1/logs/ingest', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ raw_payload: rawData })
+                    body: JSON.stringify({
+                        raw_data: rawData,
+                        log_source: logSource,
+                        severity: 'INFO',
+                        event_timestamp: new Date().toISOString()
+                    })
                 });
 
                 const data = await response.json();
