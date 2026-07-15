@@ -1,6 +1,11 @@
-import logging
+import sys
 import os
+import logging
 import time
+
+# Ensure the backend directory is in the Python path to resolve imports when running from root
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
