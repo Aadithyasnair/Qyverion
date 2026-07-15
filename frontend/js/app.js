@@ -943,7 +943,8 @@ async function loadCopilotAlerts() {
 // 7. Core Incident Playbook Generation override
 async function generatePlaybookFor(alertId) {
     appendChatMessage('user', `Generate incident response playbook for Alert ID #${alertId}`);
-    
+
+    // Show animated loading bubble
     const loadingId = appendChatMessage('assistant', `
         <div class="flex items-center gap-3 animate-pulse p-1">
             <svg class="animate-spin h-5 w-5 text-cyber-accent" fill="none" viewBox="0 0 24 24">
@@ -951,42 +952,91 @@ async function generatePlaybookFor(alertId) {
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             <div class="flex-1 font-mono text-xs">
-                <span class="text-cyber-accent font-bold">ANALYZING THREAT CORRELATION DATA...</span><br>
-                <span class="text-cyber-muted text-[10px]">Constructing step-by-step mitigation playbook for incident ID ${alertId}</span>
+                <span class="text-cyber-accent font-bold">STREAMING PLAYBOOK GENERATION...</span><br>
+                <span class="text-cyber-muted text-[10px]">Connecting to local Ollama LLM for incident ID ${alertId}</span>
             </div>
         </div>
     `);
 
     try {
-        const response = await fetch(`/api/v1/ai/playbook/${alertId}`, {
+        const response = await fetch(`/api/v1/ai/playbook/${alertId}/stream`, {
             method: 'POST'
         });
-        const data = await response.json();
-        removeChatMessage(loadingId);
 
-        if (response.ok) {
-            const messageId = appendChatMessage('assistant', data.reply);
-            
-            const msgEl = document.getElementById(messageId);
-            if (msgEl) {
-                const textContainer = msgEl.querySelector('.text-cyber-light');
-                if (textContainer) {
-                    textContainer.innerHTML += `
-                        <div class="mt-4 pt-3 border-t border-cyber-border/20 flex flex-col gap-2">
-                            <div class="text-[10px] text-cyber-accent font-bold uppercase tracking-wider font-mono">SOAR ORCHESTRATION ACTIONS:</div>
-                            <button id="remediate-btn-${alertId}" onclick="executePlaybookRemediation(${alertId}, '${messageId}')" class="cyber-btn primary py-1.5 px-3 text-[10px] w-fit font-bold tracking-wider">
-                                EXECUTE REMEDIATION PLAYBOOK
-                            </button>
-                        </div>
-                    `;
+        if (!response.ok || !response.body) {
+            removeChatMessage(loadingId);
+            appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Failed to start playbook stream: HTTP ${response.status}</span>`);
+            return;
+        }
+
+        // Remove the loading bubble and create the live streaming bubble
+        removeChatMessage(loadingId);
+        const streamId = appendChatMessage('assistant', '');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let rawAccumulated = '';
+        let buffer = '';
+
+        const streamEl = document.getElementById(streamId);
+        const textContainer = streamEl ? streamEl.querySelector('.text-cyber-light') : null;
+
+        // Show blinking cursor while streaming
+        if (textContainer) {
+            textContainer.innerHTML = '<span class="streaming-cursor">▋</span>';
+        }
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop(); // Keep incomplete frame in buffer
+
+            for (const line of lines) {
+                const dataLine = line.trim();
+                if (!dataLine.startsWith('data: ')) continue;
+
+                const payload = dataLine.slice(6);
+                if (payload === '[DONE]') {
+                    // Streaming complete — do final markdown render
+                    if (textContainer) {
+                        textContainer.innerHTML = formatMarkdown(rawAccumulated);
+                        // Inject SOAR action buttons after content
+                        textContainer.innerHTML += `
+                            <div class="mt-4 pt-3 border-t border-cyber-border/20 flex flex-col gap-2">
+                                <div class="text-[10px] text-cyber-accent font-bold uppercase tracking-wider font-mono">SOAR ORCHESTRATION ACTIONS:</div>
+                                <button id="remediate-btn-${alertId}" onclick="executePlaybookRemediation(${alertId}, '${streamId}')" class="cyber-btn primary py-1.5 px-3 text-[10px] w-fit font-bold tracking-wider">
+                                    EXECUTE REMEDIATION PLAYBOOK
+                                </button>
+                            </div>
+                        `;
+                    }
+                    break;
+                }
+
+                try {
+                    const parsed = JSON.parse(payload);
+                    if (parsed.chunk) {
+                        rawAccumulated += parsed.chunk;
+                        // Live progressive render (partial markdown — update every few chars)
+                        if (textContainer) {
+                            textContainer.innerHTML = formatMarkdown(rawAccumulated) + '<span class="streaming-cursor">▋</span>';
+                            // Auto-scroll chat as content grows
+                            const chatContainer = document.getElementById('chat-messages-container');
+                            if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }
+                } catch (_) {
+                    // Non-JSON SSE frame — ignore
                 }
             }
-        } else {
-            appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Failed to generate playbook: ${data.detail}</span>`);
         }
+
     } catch (err) {
         removeChatMessage(loadingId);
-        appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] socket error: ${err.message}</span>`);
+        appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Stream connection failed: ${err.message}</span>`);
     }
 }
 

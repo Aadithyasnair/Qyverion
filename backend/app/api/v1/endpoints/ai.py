@@ -1,11 +1,14 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.alert import Alert
 from app.models.log_entry import LogEntry
 from app.services.ai_service import AIService
+import re
+import json
 
 router = APIRouter()
 
@@ -64,8 +67,6 @@ def generate_alert_playbook(alert_id: int, db: Session = Depends(get_db)) -> AIC
         
     # Find logs associated with this alert by matching IP addresses
     logs = []
-    # Check if description contains an IP address
-    import re
     ip_matches = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", alert.description)
     if ip_matches:
         ip = ip_matches[0]
@@ -82,6 +83,56 @@ def generate_alert_playbook(alert_id: int, db: Session = Depends(get_db)) -> AIC
     ai_service = AIService()
     playbook_reply = ai_service.generate_playbook(alert, logs)
     return AIChatResponse(reply=playbook_reply)
+
+
+@router.post("/playbook/{alert_id}/stream", summary="Stream playbook generation for alert (SSE)")
+def stream_alert_playbook(alert_id: int, db: Session = Depends(get_db)) -> StreamingResponse:
+    """
+    Streams the playbook response as Server-Sent Events (SSE).
+    The frontend reads chunks token-by-token and renders them progressively,
+    eliminating the perceived cutoff from token budget limits.
+    """
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Alert with id {alert_id} not found."
+        )
+
+    ip_matches = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", alert.description)
+    if ip_matches:
+        ip = ip_matches[0]
+        logs = (
+            db.query(LogEntry)
+            .filter((LogEntry.source_ip == ip) | (LogEntry.destination_ip == ip))
+            .limit(5)
+            .all()
+        )
+    else:
+        logs = db.query(LogEntry).order_by(LogEntry.ingested_at.desc()).limit(5).all()
+
+    ai_service = AIService()
+
+    def event_generator():
+        try:
+            for chunk in ai_service.generate_playbook_stream(alert, logs):
+                # Encode chunk as SSE data frame
+                payload = json.dumps({"chunk": chunk})
+                yield f"data: {payload}\n\n"
+        except Exception as err:
+            error_payload = json.dumps({"error": str(err)})
+            yield f"data: {error_payload}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 class RemediateResponse(BaseModel):

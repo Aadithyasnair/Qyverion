@@ -448,3 +448,17 @@ body {
     border-color: hsla(var(--cyber-danger) / 0.2);
 }
 
+/* Streaming cursor blink — shown while LLM is generating */
+@keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+}
+
+.streaming-cursor {
+    display: inline-block;
+    color: hsl(var(--cyber-accent));
+    font-weight: bold;
+    animation: blink-cursor 0.75s step-end infinite;
+    margin-left: 1px;
+    vertical-align: middle;
+}
