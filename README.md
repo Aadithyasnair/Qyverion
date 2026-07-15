@@ -79,14 +79,15 @@ Qyverion/
 
 ### Prerequisites
 * **Python 3.13+** installed locally.
-* **PostgreSQL** instance running locally on port `5432`.
+* **PostgreSQL** (Optional; the system implements a **Self-Healing Local SQLite Fallback** that automatically initializes `qyverion.db` in the workspace root if PostgreSQL is offline).
+* **Ollama** running locally at `http://localhost:11434` with model `llama3.2` installed (`ollama run llama3.2`) to power the local AI Security Copilot.
 
 ### Step 1: Clone & Configure Workspace
 Create your local environment file by cloning the template:
 ```bash
 cp .env.example .env
 ```
-Open `.env` in your editor and adjust your local PostgreSQL settings:
+Open `.env` in your editor and adjust your settings if using PostgreSQL:
 ```ini
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="your_secure_postgresql_password"
@@ -128,6 +129,16 @@ uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 * **Auto-Generated Swagger API Documentation:** Open `http://127.0.0.1:8000/api/v1/docs` in your browser.
 * **Live System Health Check API:** Open `http://127.0.0.1:8000/api/v1/health`.
 
+### 🧠 Local Ollama Setup
+Ensure that Ollama is ready to receive requests, and download Llama 3.2:
+```bash
+# List local models
+ollama list
+
+# Pull Llama 3.2 (Default AI engine model)
+ollama pull llama3.2
+```
+
 ---
 
 ## 🛠️ Verification & Diagnostic Checklist
@@ -139,34 +150,28 @@ Before pushing changes, run the following verification checks:
    ```bash
    python -m py_compile backend/app/main.py
    ```
-2. **Settings Loader Integrity:**
-   Verify Pydantic parses configuration values accurately:
+2. **Run All Automated Tests:**
+   Run the complete unit and integration test suite:
    ```bash
-   python -c "from backend.app.core.config import settings; print('Settings loaded successfully for:', settings.PROJECT_NAME)"
-   ```
-3. **Database Engine Integration:**
-   Check if the database engine establishes standard connection parameters:
-   ```bash
-   python -c "from backend.app.db.session import engine; conn=engine.connect(); print('DB connection state active:', not conn.closed); conn.close()"
+   .venv\Scripts\pytest backend/tests/
    ```
 
 ---
 
 ## 🔮 Roadmap
 
-* **Phase 1: Database & Router Foundation (Current)**
-  * Establish core ORM models mapping threats, logs, and users.
-  * Formulate validation boundaries and API routes.
-  * Integrate comprehensive unit testing framework.
-* **Phase 2: Log Collection & Parsing Ingestion Pipeline**
-  * Support raw log parser formats (syslog, JSON, Windows Events).
-  * Build log pipeline buffering and streaming queue interfaces.
-* **Phase 3: Threat Detection & Correlation Engine**
-  * Run Sigma rule processing and alert generation.
-  * Implement threat intelligence indicator matching pools.
-* **Phase 4: AI Copilot & Automated Playbooks**
-  * Integrate large language models for contextual threat analysis and resolution guidance.
-  * Auto-generate remediation playbooks.
+* **Phase 1: Database & Router Foundation** [COMPLETE]
+  * Core ORM models mapping logs, alerts, users, and threat indicators.
+  * Validation boundaries and FastAPI routes.
+* **Phase 2: Log Collection & Parsing Ingestion Pipeline** [COMPLETE]
+  * Heuristic detection and parsing for Syslog RFC 5424/3164, JSON, and Windows Event logs.
+  * Live Ingestion UI to submit logs dynamically to the DB.
+* **Phase 3: Threat Detection & Correlation Engine** [COMPLETE]
+  * Real-time correlation rules for Logon Brute Force and Anomalous Service Probing.
+  * Live Incident Response Queue UI with manual resolution actions.
+* **Phase 4: AI Copilot & Automated Playbooks** [COMPLETE]
+  * Interactive AI Security Analyst Copilot with local Ollama Llama 3.2 integration.
+  * Auto-generation of markdown containment and remediation playbooks based on database incident context.
 
 ---
 
