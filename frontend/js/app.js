@@ -323,7 +323,15 @@ function initInteractivity() {
             appendChatMessage('user', messageText);
 
             // Add placeholder loading bubble
-            const loadingId = appendChatMessage('assistant', '<span class="text-cyber-muted italic animate-pulse">[Generating response from Llama3.2...]</span>');
+            const loadingId = appendChatMessage('assistant', `
+                <div class="flex items-center gap-3 animate-pulse">
+                    <svg class="animate-spin h-4 w-4 text-cyber-accent" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-cyber-muted italic">Consulting local Llama3.2 model...</span>
+                </div>
+            `);
 
             try {
                 const response = await fetch('/api/v1/ai/chat', {
@@ -560,7 +568,18 @@ async function generatePlaybookFor(alertId) {
     appendChatMessage('user', `Generate incident response playbook for Alert ID #${alertId}`);
     
     // Add placeholder loading bubble
-    const loadingId = appendChatMessage('assistant', `<span class="text-cyber-muted italic animate-pulse">[Generating custom playbooks for incident ID ${alertId} via Llama3.2...]</span>`);
+    const loadingId = appendChatMessage('assistant', `
+        <div class="flex items-center gap-3 animate-pulse p-1">
+            <svg class="animate-spin h-5 w-5 text-cyber-accent" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div class="flex-1 font-mono text-xs">
+                <span class="text-cyber-accent font-bold">ANALYZING THREAT CORRELATION DATA...</span><br>
+                <span class="text-cyber-muted text-[10px]">Constructing step-by-step mitigation playbook for incident ID ${alertId}</span>
+            </div>
+        </div>
+    `);
 
     try {
         const response = await fetch(`/api/v1/ai/playbook/${alertId}`, {
@@ -606,7 +625,8 @@ function appendChatMessage(sender, text) {
         ? '<div class="font-bold text-cyber-light">USER:</div>' 
         : '<div class="font-bold text-cyber-accent">AI:</div>';
         
-    const formattedBody = sender === 'user' ? text : formatMarkdown(text);
+    const isHtml = text.trim().startsWith('<') && text.trim().endsWith('>');
+    const formattedBody = sender === 'user' ? text : (isHtml ? text : formatMarkdown(text));
 
     container.innerHTML += `
         <div id="${messageId}" class="message ${sender} flex gap-3 p-3 border rounded animate-fade-in ${bubbleClass}">
