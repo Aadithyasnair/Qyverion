@@ -1,10 +1,16 @@
 // Qyverion - Frontend Interactions & Dynamic Log Ingestion
 
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrapApp() {
     initCanvas();
     initBootLogs();
     initInteractivity();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapApp);
+} else {
+    bootstrapApp();
+}
 
 // 1. Canvas Node-Grid Visualization
 function initCanvas() {
