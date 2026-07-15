@@ -76,10 +76,9 @@
                             <span>Investigation</span>
                             <span class="lock-badge">MOCK</span>
                         </a>
-                        <a href="#" class="sidebar-link disabled">
+                        <a href="#" class="sidebar-link" id="nav-ai-copilot">
                             <i data-lucide="terminal" class="w-4 h-4"></i>
                             <span>AI Analyst (Copilot)</span>
-                            <span class="lock-badge">MOCK</span>
                         </a>
                         <a href="#" class="sidebar-link disabled">
                             <i data-lucide="globe" class="w-4 h-4"></i>
@@ -327,6 +326,82 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Copilot Tab Content -->
+                <div id="tab-ai-copilot" class="tab-content hidden">
+                    <div class="grid gap-6 lg:grid-cols-4">
+                        <!-- Left Panel: Quick Playbook Actions -->
+                        <div class="lg:col-span-1 flex flex-col gap-4">
+                            <div class="cyber-card flex flex-col gap-3">
+                                <div class="flex items-center gap-2 border-b border-cyber-border/60 pb-2 mb-1 font-bold">
+                                    <i data-lucide="play" class="w-4 h-4 text-cyber-success"></i>
+                                    <span class="text-xs text-cyber-light">INCIDENT PLAYBOOKS</span>
+                                </div>
+                                <p class="text-[10px] text-cyber-muted leading-relaxed">
+                                    Select an active incident from the database to auto-generate a step-by-step remediation playbook using local AI.
+                                </p>
+                                <div id="copilot-alerts-list" class="flex flex-col gap-2 max-h-[300px] overflow-y-auto scrollbar-cyber mt-1">
+                                    <span class="text-[10px] text-cyber-muted font-mono py-2 text-center">No active alerts available.</span>
+                                </div>
+                            </div>
+
+                            <div class="cyber-card flex flex-col gap-2">
+                                <div class="flex items-center gap-2 border-b border-cyber-border/60 pb-2 mb-1 font-bold">
+                                    <i data-lucide="help-circle" class="w-4 h-4 text-cyber-accent"></i>
+                                    <span class="text-xs text-cyber-light">SUGGESTED PROMPTS</span>
+                                </div>
+                                <button onclick="sendCopilotSuggested('Explain how the Logon Brute Force rule evaluates logs in 60s')" class="text-left font-mono text-[10px] text-cyber-muted hover:text-cyber-accent bg-cyber-dark/30 border border-cyber-border/40 hover:border-cyber-accent/60 p-2 rounded transition">
+                                    "Explain the Logon Brute Force rule"
+                                </button>
+                                <button onclick="sendCopilotSuggested('Recommend best practices for securing SSH port 22')" class="text-left font-mono text-[10px] text-cyber-muted hover:text-cyber-accent bg-cyber-dark/30 border border-cyber-border/40 hover:border-cyber-accent/60 p-2 rounded transition">
+                                    "Best practices for securing SSH"
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: AI Chat Terminal -->
+                        <div class="lg:col-span-3">
+                            <div class="cyber-card flex flex-col h-[600px]">
+                                <!-- Header -->
+                                <div class="flex items-center justify-between border-b border-cyber-border/60 pb-3 mb-2">
+                                    <div class="flex items-center gap-3">
+                                        <div class="relative">
+                                            <i data-lucide="terminal" class="w-5 h-5 text-cyber-accent"></i>
+                                            <span class="absolute bottom-0 right-0 w-2 h-2 bg-cyber-success rounded-full animate-ping"></span>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-cyber-light">QYVERION AI SECURITY COPILOT</h3>
+                                            <p class="text-[10px] text-cyber-muted">Connected to local Ollama Llama3 / Llama3.2</p>
+                                        </div>
+                                    </div>
+                                    <button id="clear-chat-btn" class="cyber-btn secondary py-1 px-3 text-xs flex items-center gap-1.5">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        <span>CLEAR CONSOLE</span>
+                                    </button>
+                                </div>
+
+                                <!-- Messages area -->
+                                <div id="chat-messages-container" class="flex-1 overflow-y-auto scrollbar-cyber pr-2 my-2 flex flex-col gap-4 font-mono text-xs">
+                                    <div class="message assistant flex gap-3 p-3 bg-cyber-accent/5 border border-cyber-accent/15 rounded">
+                                        <div class="font-bold text-cyber-accent">AI:</div>
+                                        <div class="text-cyber-light flex-1 leading-relaxed">
+                                            Greetings, Operator. I am Qyverion AI Copilot, your local AI Security Analyst. I am ready to inspect logs, analyze security incidents, or generate mitigation playbooks. What threat vector shall we investigate?
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Input form -->
+                                <form id="chat-input-form" class="flex gap-3 border-t border-cyber-border/40 pt-3 mt-2">
+                                    <input type="text" id="chat-user-message" placeholder="Ask a question or request a security playbook..." class="flex-1 bg-cyber-dark/80 border border-cyber-border/60 text-cyber-light font-mono text-xs px-3 py-2.5 rounded focus:outline-none focus:border-cyber-accent" autocomplete="off">
+                                    <button type="submit" class="cyber-btn primary px-5 py-2.5 text-xs font-bold flex items-center gap-2">
+                                        <span>SEND</span>
+                                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

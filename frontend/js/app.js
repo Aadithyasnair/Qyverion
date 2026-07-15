@@ -189,16 +189,18 @@ function initInteractivity() {
     const navOverview = document.getElementById('nav-overview');
     const navIngestion = document.getElementById('nav-ingestion');
     const navDetection = document.getElementById('nav-detection');
+    const navAICopilot = document.getElementById('nav-ai-copilot');
     
     const tabOverview = document.getElementById('tab-overview');
     const tabIngestion = document.getElementById('tab-ingestion');
     const tabDetection = document.getElementById('tab-detection');
+    const tabAICopilot = document.getElementById('tab-ai-copilot');
 
-    if (!navOverview || !navIngestion || !navDetection) return;
+    if (!navOverview || !navIngestion || !navDetection || !navAICopilot) return;
 
     function resetTabs() {
-        [navOverview, navIngestion, navDetection].forEach(nav => nav.classList.remove('active'));
-        [tabOverview, tabIngestion, tabDetection].forEach(tab => tab.classList.add('hidden'));
+        [navOverview, navIngestion, navDetection, navAICopilot].forEach(nav => nav.classList.remove('active'));
+        [tabOverview, tabIngestion, tabDetection, tabAICopilot].forEach(tab => tab.classList.add('hidden'));
     }
 
     navOverview.addEventListener('click', (e) => {
@@ -222,6 +224,14 @@ function initInteractivity() {
         navDetection.classList.add('active');
         tabDetection.classList.remove('hidden');
         fetchDBAlerts();
+    });
+
+    navAICopilot.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetTabs();
+        navAICopilot.classList.add('active');
+        tabAICopilot.classList.remove('hidden');
+        loadCopilotAlerts();
     });
 
     // Ingestion Form Submit handler
@@ -297,6 +307,65 @@ function initInteractivity() {
     if (refreshAlertsBtn) {
         refreshAlertsBtn.addEventListener('click', () => {
             fetchDBAlerts();
+        });
+    }
+
+    // AI Copilot Chat Form handler
+    const chatForm = document.getElementById('chat-input-form');
+    if (chatForm) {
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById('chat-user-message');
+            const messageText = messageInput.value.trim();
+            if (!messageText) return;
+
+            messageInput.value = '';
+            appendChatMessage('user', messageText);
+
+            // Add placeholder loading bubble
+            const loadingId = appendChatMessage('assistant', '<span class="text-cyber-muted italic animate-pulse">[Generating response from Llama3.2...]</span>');
+
+            try {
+                const response = await fetch('/api/v1/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: messageText
+                    })
+                });
+
+                const data = await response.json();
+                removeChatMessage(loadingId);
+
+                if (response.ok) {
+                    appendChatMessage('assistant', data.reply);
+                } else {
+                    appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Copilot rejected request: ${data.detail || 'Malformed payload'}</span>`);
+                }
+            } catch (err) {
+                removeChatMessage(loadingId);
+                appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Remote socket closed: ${err.message}</span>`);
+            }
+        });
+    }
+
+    // Clear chat console handler
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', () => {
+            const container = document.getElementById('chat-messages-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="message assistant flex gap-3 p-3 bg-cyber-accent/5 border border-cyber-accent/15 rounded animate-fade-in">
+                        <div class="font-bold text-cyber-accent">AI:</div>
+                        <div class="text-cyber-light flex-1 leading-relaxed">
+                            Console reset. Ready to inspect threat parameters, analyze logs, or construct response playbooks.
+                        </div>
+                    </div>
+                `;
+            }
         });
     }
 }
@@ -456,3 +525,141 @@ window.resolveAlert = async function(alertId) {
         alert(`Error communicating with backend: ${err.message}`);
     }
 };
+
+// AI Copilot Helpers
+async function loadCopilotAlerts() {
+    const listContainer = document.getElementById('copilot-alerts-list');
+    if (!listContainer) return;
+
+    try {
+        const response = await fetch('/api/v1/alerts/');
+        const alerts = await response.json();
+
+        if (response.ok) {
+            const activeAlerts = alerts.filter(a => a.status === 'NEW');
+            if (activeAlerts.length === 0) {
+                listContainer.innerHTML = '<span class="text-[10px] text-cyber-muted font-mono py-2 text-center">No active alerts available.</span>';
+            } else {
+                listContainer.innerHTML = activeAlerts.map(alert => `
+                    <div class="flex flex-col gap-1.5 p-2 bg-cyber-dark/40 border border-cyber-border/40 rounded">
+                        <span class="text-[9px] text-cyber-muted">${new Date(alert.created_at).toLocaleTimeString()}</span>
+                        <span class="text-[10px] text-cyber-light font-bold truncate" title="${alert.title}">${alert.title}</span>
+                        <button onclick="generatePlaybookFor(${alert.id})" class="cyber-btn secondary py-1 text-[9px] w-full text-center mt-1">
+                            GENERATE PLAYBOOK
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        listContainer.innerHTML = '<span class="text-[10px] text-cyber-danger font-mono py-2 text-center">Failed to fetch alerts list.</span>';
+    }
+}
+
+async function generatePlaybookFor(alertId) {
+    appendChatMessage('user', `Generate incident response playbook for Alert ID #${alertId}`);
+    
+    // Add placeholder loading bubble
+    const loadingId = appendChatMessage('assistant', `<span class="text-cyber-muted italic animate-pulse">[Generating custom playbooks for incident ID ${alertId} via Llama3.2...]</span>`);
+
+    try {
+        const response = await fetch(`/api/v1/ai/playbook/${alertId}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        removeChatMessage(loadingId);
+
+        if (response.ok) {
+            appendChatMessage('assistant', data.reply);
+        } else {
+            appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Failed to generate playbook: ${data.detail}</span>`);
+        }
+    } catch (err) {
+        removeChatMessage(loadingId);
+        appendChatMessage('assistant', `<span class="text-cyber-danger">[Error] Socket connection reset: ${err.message}</span>`);
+    }
+}
+
+// Global quick actions caller
+window.sendCopilotSuggested = function(text) {
+    const input = document.getElementById('chat-user-message');
+    if (input) {
+        input.value = text;
+        const form = document.getElementById('chat-input-form');
+        if (form) {
+            form.dispatchEvent(new Event('submit'));
+        }
+    }
+};
+window.generatePlaybookFor = generatePlaybookFor;
+
+function appendChatMessage(sender, text) {
+    const container = document.getElementById('chat-messages-container');
+    if (!container) return "";
+    
+    const messageId = "chat-msg-" + Date.now() + Math.random().toString(36).substr(2, 5);
+    const bubbleClass = sender === 'user' 
+        ? 'bg-cyber-light/5 border-cyber-border/20' 
+        : 'bg-cyber-accent/5 border-cyber-accent/15';
+    
+    const senderLabel = sender === 'user' 
+        ? '<div class="font-bold text-cyber-light">USER:</div>' 
+        : '<div class="font-bold text-cyber-accent">AI:</div>';
+        
+    const formattedBody = sender === 'user' ? text : formatMarkdown(text);
+
+    container.innerHTML += `
+        <div id="${messageId}" class="message ${sender} flex gap-3 p-3 border rounded animate-fade-in ${bubbleClass}">
+            ${senderLabel}
+            <div class="text-cyber-light flex-1 leading-relaxed">${formattedBody}</div>
+        </div>
+    `;
+
+    // Auto-scroll terminal to bottom
+    container.scrollTop = container.scrollHeight;
+    
+    return messageId;
+}
+
+function removeChatMessage(messageId) {
+    const el = document.getElementById(messageId);
+    if (el) el.remove();
+}
+
+function formatMarkdown(text) {
+    if (!text) return "";
+    
+    // Simple HTML sanitizer/escaping to prevent breaking UI tags
+    let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // Code blocks: ```code ... ```
+    html = html.replace(/```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)```/g, (match, p1) => {
+        return `<pre class="bg-cyber-dark border border-cyber-border/40 p-3 rounded font-mono text-[11px] text-cyber-accent my-2 overflow-x-auto select-text">${p1.trim()}</pre>`;
+    });
+
+    // Inline code: `code`
+    html = html.replace(/`([^`]+)`/g, '<code class="bg-cyber-dark/60 text-cyber-accent px-1.5 py-0.5 rounded font-mono text-[10px]">$1</code>');
+
+    // Bold: **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-cyber-light font-bold">$1</strong>');
+
+    // Headings: #, ##, ###
+    html = html.replace(/^### (.*$)/gim, '<h4 class="text-xs font-bold text-cyber-light mt-3 border-b border-cyber-border/20 pb-1 mb-1">$1</h4>');
+    html = html.replace(/^## (.*$)/gim, '<h3 class="text-sm font-bold text-cyber-light mt-4 border-b border-cyber-border/30 pb-1 mb-1">$1</h3>');
+    html = html.replace(/^# (.*$)/gim, '<h2 class="text-md font-bold text-cyber-accent mt-5 border-b border-cyber-border/40 pb-1 mb-1">$1</h2>');
+
+    // Bullet points: - item
+    html = html.replace(/^\s*-\s+(.*$)/gim, '<li class="list-disc list-inside text-cyber-muted ml-2 py-0.5">$1</li>');
+
+    // Newlines replacement outside code pre blocks
+    const parts = html.split(/(<pre[\s\S]*?<\/pre>)/g);
+    for (let i = 0; i < parts.length; i++) {
+        if (!parts[i].startsWith('<pre')) {
+            parts[i] = parts[i].replace(/\n/g, '<br>');
+        }
+    }
+    return parts.join('');
+}
