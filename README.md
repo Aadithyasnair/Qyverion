@@ -3,7 +3,6 @@
 Qyverion is a production-grade, modular, and scalable Security Operations Center (SOC) platform designed for centralized log ingestion, threat detection, security incident investigation, threat intelligence enrichment, and AI-assisted security analysis.
 
 This repository contains the core codebase for Qyverion, structured using clean architecture principles to ensure decoupling of business logic, database implementations, and presentation layers.
-
 ---
 
 ## 🛠️ Technology Stack
